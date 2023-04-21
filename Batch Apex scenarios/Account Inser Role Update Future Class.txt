@@ -1,0 +1,38 @@
+Account Insert Role Update
+Mixed DML
+
+
+public class AccountInserRoleUpdateFutureClass
+{
+@future
+    public static void UpdateRoleMethod()
+    {
+        UserRole ur = [SELECT Id FROM UserRole WHERE name = 'CEO'];
+        Profile p  = [SELECT id FROM Profile WHERE name = 'System Administrator'];
+		
+        List<User> userFieldUpdate = new List<User>();
+        for(User u : [SELECT id, UserRoleId  FROM User WHERE profileID =: p.id])
+        {
+          u.UserRoleId  = ur.id;
+          userFieldUpdate.add(u);
+        }
+         update userFieldUpdate;
+    }
+}
+
+
+
+
+public class MixedDMLFutureClass 
+{
+   public static void useFutureMethod() 
+    {
+        // First DML operation
+        Account a = new Account(Name='Acme');
+        insert a;
+        
+        
+        //update UserRole
+        AccountInserRoleUpdateFutureClass.UpdateRoleMethod();
+    }
+}

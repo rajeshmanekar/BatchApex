@@ -1,0 +1,24 @@
+Global class DynamicRatingBatchClass implements Database.Batchable<sObject>
+{
+    Global string accRating;
+    Global DynamicRatingBatchClass(String b)
+    {
+        accRating = b;
+    }
+    Global Database.QueryLocator Start(Database.BatchableContext BC)
+    {
+        String query = 'SELECT Id, Name, Rating FROM Account WHERE Rating =: accRating';
+        return Database.getQueryLocator(query);
+    }
+    Global void Execute(Database.BatchableContext BC, List<Account> accList)
+    {
+        for(Account ac : accList)
+        {
+          system.debug('Name=>' + ac.Name + ' ' + 'Rating=>' + ac.Rating);
+        }
+    }
+    Global void Finish(Database.BatchableContext BC)
+    {
+		
+    }
+}

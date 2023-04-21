@@ -1,0 +1,24 @@
+Global class UpdateConDesBatchClass implements Database.Batchable<sObject>
+{
+    Global Database.QueryLocator Start(Database.BatchableContext bc)
+    {
+        String query = 'SELECT Id, Name, Description FROM Contact';
+        return Database.getQueryLocator(query);
+    }
+    Global void Execute(Database.BatchableContext bc, List<Contact> conList)
+    {
+        List<Contact> updateCon = new List<Contact>();
+        for(Contact con : conList)
+        {
+            Id profileId = UserInfo.getProfileId();
+            String profileName = [SELECT Id, Name FROM Profile WHERE Id =: profileId].Name;
+            con.Description =  'Current Time =>' + DateTime.now() + 'Current User Name =>' + UserInfo.getName() + 'Current User ProfileId=>' + profileId + 'Current User ProfileName =>' + profileName; 
+		    updateCon.add(con);	        
+        }
+        update updateCon;
+    }
+    Global void Finish(Database.BatchableContext bc)
+    {
+        
+    }
+}

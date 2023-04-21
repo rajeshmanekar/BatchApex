@@ -1,0 +1,37 @@
+Global class AccountNameUpdateBatchClass implements Database.Batchable<sObject>, Database.stateful
+{
+    Integer i=0 , j=0;
+    Global Database.QueryLocator Start(Database.BatchableContext bc)
+    {
+        String query = 'SELECT Id, Name FROM Account';
+        return Database.getQueryLocator(query);
+    }
+    Global void Execute(Database.BatchableContext bc, List<Account> accList)
+    {
+        List<Account> accountlist = new List<Account>();
+        for(Account acc : accList)
+        {
+            acc.Name = acc.Name + 'Test';
+            accountlist.add(acc);
+            i++;
+            system.debug('no of records' + i);
+        }
+        update accountlist;
+        j++;
+            system.debug('count of batches' + j);
+    }
+    Global void Finish(Database.BatchableContext bc)
+    {
+        //step 1 => Initiallize the messaging method called SingleEmailMessage
+        Messaging.SingleEmailMessage SEM = new Messaging.SingleEmailMessage();
+        
+     	//step 2 => compose the email to some email id's
+           List<String> toadd = new List<String>{'rajeshmanekar.sfdc@gmail.com'};
+           SEM.setToAddresses(toadd);
+           SEM.setSubject('Hi, Rajesh');
+           SEM.setPlainTextBody('From a users perspective the components of an email message are relatively simple.');   
+        //step 3 => Send email
+           List<Messaging.Email> SendEmail = new List<Messaging.Email>{SEM};
+           Messaging.sendEmail(SendEmail);
+    }
+}

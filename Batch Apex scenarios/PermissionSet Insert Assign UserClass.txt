@@ -1,0 +1,17 @@
+PermissionSet Insertion and  Assign UserClass
+
+public class PermissionSetInsertAssignUserClass 
+{
+    public static void MainMethod()
+    {
+        // Creating the permission set
+       PermissionSet permSet = new PermissionSet(Label='Case Permisson Set',Name='PermissonSetName');
+       insert permSet;
+        
+        //Assigning to the User
+        User u = [SELECT Id, Name FROM User WHERE Name = 'Chakresh Verma'];
+       
+       PermissionSetAssignment permAssg = new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = permSet.id);
+       insert permAssg;
+    }
+}

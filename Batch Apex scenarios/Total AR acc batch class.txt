@@ -1,0 +1,24 @@
+Global class TotalAROfAccountsBatchClass implements Database.Batchable<sObject>, Database.Stateful
+{
+Global Decimal Summary=0;
+    Global Database.QueryLocator Start(Database.BatchableContext BC)
+    {
+        String query = 'SELECT Id, Name, AnnualRevenue FROM Account';
+        return Database.getQueryLocator(query);
+    }
+    Global void Execute(Database.BatchableContext BC, List<Account> accList)
+    {
+        for(Account acc : accList)
+        {
+            if(acc.AnnualRevenue != null)
+            {
+             Summary = Summary + acc.AnnualRevenue;   
+            }
+        }
+        system.debug('Total Annual Revenue => ' + Summary);
+    }
+    Global void Finish(Database.BatchableContext BC)
+    {
+
+    }
+}

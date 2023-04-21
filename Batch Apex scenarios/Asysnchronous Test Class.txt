@@ -1,0 +1,282 @@
+Single Email Messaging ==>
+
+        Messaging.SingleEmailMessage SEM = new Messaging.SingleEmailMessage();
+        
+        List<Account> accountDetails = [SELECT Id, Name, AnnualRevenue, Rating, Owner.Email, Count_of_Contact__c FROM Account LIMIT 1];// Createdby.Email
+        
+        for(Account acc : accountDetails)
+        {
+           List<String> toadd = new List<String>{acc.Owner.Email};
+           SEM.setToAddresses(toadd);
+           SEM.setSubject('Hi,' + acc.Name);
+           SEM.setPlainTextBody('Hi, ' + acc.Name + ' having an Annual revenue ' + acc.AnnualRevenue + ' with Rating as ' + acc.Rating + ' Having an total Contacts ' + acc.Count_of_Contact__c);   
+        
+           Messaging.sendEmail(new List<Messaging.Email>{SEM});
+        }
+		
+		
+Mass Email Messaging ===>
+
+        Messaging.MassEmailMessage mail = new Messaging.MassEmailMessage();
+        
+        List<User> us = [SELECT Id, Email FROM User WHERE Profile.Name = 'System Administrator'];
+        List<Id> idList = new List<Id>();
+        for(User u : us)
+        {
+            idList.add(u.Id);
+        }
+        
+        EmailTemplate ET = [SELECT Id, Name FROM EmailTemplate WHERE Name = 'Sales: New Customer Email'];
+        
+        mail.setTargetObjectIds(idList);
+        mail.setTemplateId(ET.Id);
+        mail.setSaveAsActivity(false); //only if u send email to user not for objects query
+    
+        Messaging.sendEmail(new List<Messaging.Email>{mail});
+		
+		
+		
+		
+		
+Sum of AR of account ===>
+		
+Global class TotalAROfAccountsBatchClass implements Database.Batchable<sObject>, Database.Stateful
+{
+Global Decimal sumofAR=0;
+    Global Database.QueryLocator Start(Database.BatchableContext BC)
+    {
+        String query = 'SELECT Id, AnnualRevenue FROM Account';
+        return Database.getQueryLocator(query);
+    }
+    Global void Execute(Database.BatchableContext BC, List<Account> accList)
+    {
+     List<AggregateResult> accGroupedResults= [SELECT SUM(AnnualRevenue) sum FROM Account];
+    
+        for(AggregateResult ar : accGroupedResults)
+        {
+            sumofAR = sumofAR + (Decimal)ar.get('sum');
+        }   
+        system.debug('Total Annual Revenue => ' + sumofAR);
+    }
+    Global void Finish(Database.BatchableContext BC){}
+}		
+
+
+		
+		
+sum of amount of all opportunities and asyncapexjob status in finish method ===>
+
+Global class GetJobIdDetailsInFinishMethodBatchClass implements Database.Batchable<sObject>, database.stateful
+{
+    Global Decimal sumofAmt=0;
+    Global Database.QueryLocator start(Database.BatchableContext BC)
+    {
+        String query = 'SELECT Id, Amount FROM Opportunity';
+        return Database.getQueryLocator(query);
+    }
+    Global void execute(Database.BatchableContext BC, List<Opportunity> oppList)
+    {
+     List<AggregateResult> oppGroupedResults= [SELECT SUM(Amount) sum FROM Opportunity];
+    
+        for(AggregateResult ar : oppGroupedResults)
+        {
+            sumofAmt = sumofAmt + (Decimal)ar.get('sum');
+        }
+        system.debug('Sum of all opportunities amount' + sumofAmt);
+    }
+    Global void Finish(Database.BatchableContext BC)
+    {
+        AsyncApexJob a = [SELECT Id, Status, ExtendedStatus, NumberOfErrors, JobItemsProcessed, TotalJobItems
+                          FROM AsyncApexJob WHERE Id =:BC.getJobId()];
+          
+            Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+            List<String> toAddresses = new List<String>{'rajeshmanekar.sfdc@gmail.com'};
+            mail.setToAddresses(toAddresses);
+            mail.setSubject('Total amount of all opportunities Batch class ' + a.Status);
+            mail.setPlainTextBody('The batch Apex job processed ' + a.TotalJobItems +' batches with '+ a.NumberOfErrors + ' failures.');
+            Messaging.sendEmail(new List<Messaging.SingleEmailMessage>{ mail });
+        
+        //string total = 'sum of opporunities' + sumofAmt;
+        //mail.setdescription(total);
+    }
+}
+
+
+
+
+mix dml ==>
+Account insert user insert, role update, permissionset 
+
+Account acc = new Account(Name = 'abc');
+insert acc;
+
+AccountUserInsertFutureClass.insertUserWithRole('rajesh@gmail.com', 'Rmane', 'rajesh@gmail.com', 'Manekar');
+
+//User insert
+public class AccountUserInsertFutureClass
+{
+  @future
+  public static void insertUserWithRole(String uname, String al, String em, String lname)
+  {
+
+     Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard Platform User'];
+     UserRole r = [SELECT Id FROM UserRole WHERE Name = 'COO'];
+        // Create new user with a non-null user role ID 
+        User u = new User(lastname=lname,
+                          alias = al,
+                          email=em, 
+                          username=uname,
+                          userroleid = r.Id,
+                          profileid = p.Id,
+                          emailencodingkey='UTF-8',
+                          timezonesidkey='America/Los_Angeles',
+                          languagelocalekey='en_US', 
+                          localesidkey='en_US');
+            insert u;
+    }
+}
+
+
+//random User insert
+
+public class ContactUserInsertFutureClass
+{
+  @future
+  public static void insertUserWithRole()
+  {
+     String uname;
+        String al; 
+        String em; 
+        String lname;
+        final String chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+        for(integer i = 0; i<2; i++)
+        {
+            String randStr = '';
+            while (randStr.length() < 6)
+            {
+                Integer idx = Math.mod(Math.abs(Crypto.getRandomInteger()), chars.length());
+                randStr += chars.substring(idx, idx+1); 
+            }
+            if(i==0)
+            {
+                uname= randStr + '@mailinator.com';
+            }
+            else
+            {
+                lname= randStr;
+                al = uname.substring(0, 2) + lname.substring(0, 2);
+                em = uname;
+            }            
+        }
+        
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard Platform User'];
+        UserRole r = [SELECT Id FROM UserRole WHERE Name = 'COO'];
+        
+        User u = new User(lastname=lname,
+                          alias = al,
+                          email= em, 
+                          username=uname,
+                          userroleid = r.Id,
+                          profileid = p.Id,
+                          emailencodingkey='UTF-8',
+                          timezonesidkey='America/Los_Angeles',
+                          languagelocalekey='en_US', 
+                          localesidkey='en_US');
+        insert u;
+    }
+}
+
+//Role update
+
+public class AccountInserRoleUpdateFutureClass
+{
+@future
+    public static void UpdateRoleMethod()
+    {
+        UserRole ur = [SELECT Id FROM UserRole WHERE name = 'CEO'];
+        Profile p  = [SELECT id FROM Profile WHERE name = 'Standard Platform User'];
+        List<User> userFieldUpdate = new List<User>();
+        for(User u : [SELECT id, UserRoleId  FROM User WHERE profileID =: p.id])
+        {
+          u.UserRoleId  = ur.id;
+          userFieldUpdate.add(u);
+        }
+         update userFieldUpdate;
+    }
+}
+
+//permisssion set insert and assigning to user
+
+public class PermissionSetInsertAssignUserClass 
+{
+    public static void MainMethod()
+    {
+        //Creating the permission set
+       PermissionSet permSet = new PermissionSet(Label='Case Permisson Set',Name='PermissonSetName');
+       insert permSet;
+        
+        //Assigning to the User
+        User u = [SELECT Id, Name FROM User WHERE Name = 'Chakresh Verma'];
+       
+       PermissionSetAssignment permAssg = new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = permSet.id);
+       insert permAssg;
+    }
+}
+
+
+CRON Expression
+
+Sec, Min, Hr, DayOfMonth, Month, DayOfWeek, Year
+
+Last day of month => L
+Nearest weekday => W
+
+ 
+batch apex
+Database.executeBatch(new className, Batch size);
+
+shedule apex
+className c = new className;
+string sch = 'CRON';
+system.schedule('job name', sch, c);
+
+queable apex
+system.enqueueJob(new className);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

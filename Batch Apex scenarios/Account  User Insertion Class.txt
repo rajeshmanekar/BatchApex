@@ -1,0 +1,48 @@
+Insert Account and User
+Mixed DML 
+
+public class AccountUserInsertFutureClass
+{
+  @future
+  public static void insertUserWithRole(String uname, String al, String em, String lname)
+  {
+
+     Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User'];
+     UserRole r = [SELECT Id FROM UserRole WHERE Name = 'COO'];
+        // Create new user with a non-null user role ID 
+        User u = new User(lastname=lname,
+                          alias = al,
+                          email=em, 
+                          username=uname,
+                          userroleid = r.Id,
+                          profileid = p.Id,
+                          emailencodingkey='UTF-8',
+                          timezonesidkey='America/Los_Angeles',
+                          languagelocalekey='en_US', 
+                          localesidkey='en_US');
+            insert u;
+    }
+}
+
+
+
+
+
+public class MixedDMLFutureClass 
+{
+   public static void useFutureMethod() 
+    {
+        // First DML operation
+        Account a = new Account(Name='Acme');
+        insert a;
+        
+
+        // This next operation (insert a user with a role) 
+        // can't be mixed with the previous insert unless 
+        // it is within a future method. 
+        // Call future method to insert a user with a role.
+        AccountUserInsertFutureClass.insertUserWithRole(
+            'mruiz@awcomputing.com', 'mruiz', 
+            'mruiz@awcomputing.com', 'Ruiz');        
+    }
+}

@@ -1,0 +1,46 @@
+Global class TotalOppAmtBatchClass implements Database.Batchable<sObject>
+{
+    Global Decimal sum;
+    Global Database.QueryLocator start(Database.BatchableContext BC)
+    {
+        String query = 'SELECT Id, Amount FROM Opportunity';
+        return Database.getQueryLocator(query);
+    }
+    Global void execute(Database.BatchableContext BC, List<Opportunity> oppList)
+    {
+    AggregateResult[] oppGroupedResults= [SELECT SUM(Amount) sum FROM Opportunity];
+    
+        for(AggregateResult ar : oppGroupedResults)
+        {
+            sum = (Decimal)ar.get('sum');
+        }
+        system.debug('Sum of all opportunities amount' + sum);
+    }
+    Global void Finish(Database.BatchableContext BC)
+    {
+       //Initialization of Mass email message method
+        Messaging.MassEmailMessage mail = new Messaging.MassEmailMessage();
+        
+        //Need Id's
+        List<User> us = [SELECT Id, Email FROM User WHERE Profile.Name = 'System Administrator'];
+        List<Id> idList = new List<Id>();
+        for(User u : us)
+        {
+            idList.add(u.Id);
+        }
+        
+        // need Email Template Id's
+        EmailTemplate ET = [SELECT Id, Name FROM EmailTemplate WHERE Name = 'Sales: New Customer Email'];
+        
+        //Compose Email
+        mail.setTargetObjectIds(idList);
+        mail.setTemplateId(ET.Id);
+        mail.setSaveAsActivity(false);
+        //System.EmailException: SendEmail failed. First exception on row 0; first error: INVALID_SAVE_AS_ACTIVITY_FLAG, 
+        //saveAsActivity must be false when sending mail to users.: []
+            
+        //Send Email
+        List<Messaging.Email> SendME = new List<Messaging.Email>{mail};
+        Messaging.sendEmail(SendME);
+    }
+}
